@@ -3,7 +3,9 @@ package com.neel.inventoryordersystem;
 import com.neel.inventoryordersystem.dto.ProductRequestDTO;
 import com.neel.inventoryordersystem.dto.ProductResponseDTO;
 import com.neel.inventoryordersystem.entity.Product;
+import com.neel.inventoryordersystem.exception.ProductInUseException;
 import com.neel.inventoryordersystem.exception.ProductNotFoundException;
+import com.neel.inventoryordersystem.repository.OrderItemRepository;
 import com.neel.inventoryordersystem.repository.ProductRepository;
 import com.neel.inventoryordersystem.service.ProductService;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,9 @@ public class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private OrderItemRepository orderItemRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -91,5 +96,15 @@ public class ProductServiceTest {
         productService.deleteProduct(1L);
 
         verify(productRepository).delete(product);
+    }
+
+    @Test
+    void shouldNotDeleteProductThatIsPartOfExistingOrders() {
+        Product product = new Product("Keyboard", BigDecimal.TEN, 20);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(orderItemRepository.existsByProductId(1L)).thenReturn(true);
+
+        assertThrows(ProductInUseException.class, () -> productService.deleteProduct(1L));
+        verify(productRepository, never()).delete(any());
     }
 }

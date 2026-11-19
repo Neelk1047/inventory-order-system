@@ -4,7 +4,9 @@ import com.neel.inventoryordersystem.dto.ProductRequestDTO;
 import com.neel.inventoryordersystem.dto.ProductResponseDTO;
 import com.neel.inventoryordersystem.dto.ProductBatchRequestDTO;
 import com.neel.inventoryordersystem.entity.Product;
+import com.neel.inventoryordersystem.exception.ProductInUseException;
 import com.neel.inventoryordersystem.exception.ProductNotFoundException;
+import com.neel.inventoryordersystem.repository.OrderItemRepository;
 import com.neel.inventoryordersystem.repository.ProductRepository;
 import org.springframework.data.domain.Page;
 import java.util.List;
@@ -15,9 +17,11 @@ import org.springframework.stereotype.Service;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(ProductRepository productRepository, OrderItemRepository orderItemRepository) {
         this.productRepository = productRepository;
+        this.orderItemRepository = orderItemRepository;
     }
 
     public ProductResponseDTO addProduct(ProductRequestDTO dto) {
@@ -60,6 +64,11 @@ public class ProductService {
 
     public void deleteProduct(Long id) {
         Product product = getProductEntityById(id);
+        // Past orders keep a reference to the product, so deleting it would break order history.
+        if (orderItemRepository.existsByProductId(id)) {
+            throw new ProductInUseException(
+                    "Product with ID " + id + " is part of existing orders and cannot be deleted");
+        }
         productRepository.delete(product);
     }
 }
