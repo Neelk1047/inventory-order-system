@@ -22,6 +22,12 @@ public class Product {
     @Column(nullable = false)
     private int stockQuantity;
 
+    // Optimistic locking: Hibernate adds "WHERE id = ? AND version = ?" to every UPDATE and
+    // increments the version. If another request changed the row first, 0 rows match and
+    // Hibernate throws an optimistic-locking exception -- so two orders can't both take the last item.
+    @Version
+    private Long version;
+
     public Product() {
     }
 

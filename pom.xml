@@ -57,6 +57,13 @@
             <version>2.8.13</version>
         </dependency>
 
+        <!-- In-memory database used only by the integration/concurrency test -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
