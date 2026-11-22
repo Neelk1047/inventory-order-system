@@ -9,11 +9,12 @@ import com.neel.inventoryordersystem.entity.Product;
 import com.neel.inventoryordersystem.exception.InsufficientStockException;
 import com.neel.inventoryordersystem.exception.OrderNotFoundException;
 import com.neel.inventoryordersystem.repository.OrderRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Service
 public class OrderService {
@@ -37,8 +38,8 @@ public class OrderService {
             if (product.getStockQuantity() < itemDto.getQuantity()) {
                 throw new InsufficientStockException(
                         "Insufficient stock for product '" + product.getName() +
-                        "'. Available: " + product.getStockQuantity() +
-                        ", Requested: " + itemDto.getQuantity());
+                                "'. Available: " + product.getStockQuantity() +
+                                ", Requested: " + itemDto.getQuantity());
             }
 
             product.setStockQuantity(product.getStockQuantity() - itemDto.getQuantity());
@@ -56,16 +57,17 @@ public class OrderService {
         return OrderResponseDTO.from(saved);
     }
 
-    public List<OrderResponseDTO> getAllOrders() {
-        return orderRepository.findAll().stream()
-                .map(OrderResponseDTO::from)
-                .toList();
+    // readOnly = true keeps one DB session open while we map lazy items to DTOs
+    // (needed because open-in-view is switched off in application.properties).
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDTO> getAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable).map(OrderResponseDTO::from);
     }
 
+    @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException("Order with ID " + id + " not found"));
         return OrderResponseDTO.from(order);
     }
 }
-
